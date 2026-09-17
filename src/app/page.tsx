@@ -18,6 +18,11 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [meta, setMeta] = useState<string | null>(null);
 
+  const clearReport = () => {
+    setReport(null);
+    setMeta(null);
+  };
+
   const runPipeline = useCallback(async (supplier: ParsedSheet, shopify: ParsedSheet) => {
     setBusy(true);
     setError(null);
@@ -40,10 +45,10 @@ export default function HomePage() {
   const onSupplier = async (file: File) => {
     setBusy(true);
     setError(null);
+    clearReport();
     try {
       const sheet = await parseFile(file);
       setSupplierSheet(sheet);
-      if (shopifySheet) await runPipeline(sheet, shopifySheet);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -54,10 +59,10 @@ export default function HomePage() {
   const onShopify = async (file: File) => {
     setBusy(true);
     setError(null);
+    clearReport();
     try {
       const sheet = await parseFile(file);
       setShopifySheet(sheet);
-      if (supplierSheet) await runPipeline(supplierSheet, sheet);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -65,22 +70,34 @@ export default function HomePage() {
     }
   };
 
+  /** 只加载样例，不自动干跑 */
   const loadSamples = async () => {
     setBusy(true);
     setError(null);
+    clearReport();
     try {
       const [supplier, shopify] = await Promise.all([
         parseSampleUrl("/samples/supplier-catalog.csv", "supplier-catalog.csv"),
-        parseSampleUrl("/samples/shopify-products-export.csv", "shopify-products-export.csv"),
+        parseSampleUrl(
+          "/samples/shopify-products-export.csv",
+          "shopify-products-export.csv"
+        ),
       ]);
       setSupplierSheet(supplier);
       setShopifySheet(shopify);
-      await runPipeline(supplier, shopify);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
+  };
+
+  const startDryRun = async () => {
+    if (!supplierSheet || !shopifySheet) {
+      setError("请先上传两份文件，或点击「加载演示样例」");
+      return;
+    }
+    await runPipeline(supplierSheet, shopifySheet);
   };
 
   const download = () => {
@@ -89,6 +106,8 @@ export default function HomePage() {
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     downloadTextFile(`shopify-price-inventory-update-${stamp}.csv`, csv);
   };
+
+  const bothReady = Boolean(supplierSheet && shopifySheet);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -110,12 +129,20 @@ export default function HomePage() {
           type="button"
           onClick={loadSamples}
           disabled={busy}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
+          className="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-indigo-50 disabled:opacity-50"
         >
           加载演示样例
         </button>
+        <button
+          type="button"
+          onClick={startDryRun}
+          disabled={busy || !bothReady}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          开始干跑
+        </button>
         <span className="text-xs text-slate-500">
-          约 3 分钟演示：样例 → 干跑 → 下载变更 CSV
+          演示：加载样例 → 开始干跑 → 导出 CSV
         </span>
       </div>
 
@@ -125,12 +152,20 @@ export default function HomePage() {
           hint="需含 SKU、价格、库存列（中英列名均可）"
           fileName={supplierSheet?.fileName ?? null}
           onFile={onSupplier}
+          onClear={() => {
+            setSupplierSheet(null);
+            clearReport();
+          }}
         />
         <FileDrop
           label="2. Shopify 产品导出"
           hint="Products → Export，含 Handle / Variant SKU / Option / Price / Inventory"
           fileName={shopifySheet?.fileName ?? null}
           onFile={onShopify}
+          onClear={() => {
+            setShopifySheet(null);
+            clearReport();
+          }}
         />
       </div>
 
@@ -156,7 +191,7 @@ export default function HomePage() {
               disabled={report.changedCount === 0}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              下载变更 CSV（{report.changedCount} 行）
+              导出 CSV（{report.changedCount} 行）
             </button>
           </div>
           <DryRunPanel report={report} />
