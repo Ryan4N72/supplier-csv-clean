@@ -100,11 +100,10 @@ export default function HomePage() {
     await runPipeline(supplierSheet, shopifySheet);
   };
 
-  const download = () => {
+  const download = async () => {
     if (!report || report.changedDiffs.length === 0) return;
     const csv = buildChangedCsv(report.changedDiffs);
-    // 固定可读文件名，避免浏览器落成 UUID / 无扩展名
-    downloadTextFile("shopify-price-inventory-delta.csv", csv);
+    await downloadTextFile("shopify-price-inventory-delta.csv", csv);
   };
 
   const bothReady = Boolean(supplierSheet && shopifySheet);

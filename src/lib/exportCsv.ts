@@ -1,5 +1,7 @@
 import type { DiffRow } from "./types";
 
+const EXPORT_FILENAME = "shopify-price-inventory-delta.csv";
+
 /** Shopify 导入用 UTF-8 BOM CSV；仅输出有意覆盖的列 */
 export function buildChangedCsv(changed: DiffRow[]): string {
   const headers = [
@@ -59,17 +61,53 @@ function csvEscape(v: string): string {
   return s;
 }
 
-/** 标准 <a download> 保存；无 File System Access / 无服务端路由 */
-export function downloadTextFile(filename: string, content: string) {
+type SaveFilePickerWindow = Window & {
+  showSaveFilePicker?: (options?: {
+    suggestedName?: string;
+    types?: Array<{
+      description?: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<FileSystemFileHandle>;
+};
+
+/** 优先 showSaveFilePicker(suggestedName)；否则标准 a.download 回退 */
+export async function downloadTextFile(
+  _filename: string,
+  content: string
+): Promise<void> {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const w = window as SaveFilePickerWindow;
+
+  if (typeof w.showSaveFilePicker === "function") {
+    try {
+      const handle = await w.showSaveFilePicker({
+        suggestedName: EXPORT_FILENAME,
+        types: [
+          {
+            description: "CSV",
+            accept: { "text/csv": [".csv"] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      // 用户取消：不再回退，避免二次弹下载
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // 其它失败 → 回退 a.download
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "shopify-price-inventory-delta.csv";
+  a.download = EXPORT_FILENAME;
   a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
-  void filename; // 调用方仍传名；实际保存名固定为上式，避免漂移
 }
