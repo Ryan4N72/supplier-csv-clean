@@ -1,0 +1,9 @@
+﻿Handle,Title,Option1 Name,Option1 Value,Option2 Name,Option2 Value,Option3 Name,Option3 Value,Variant SKU,Variant Price,Variant Inventory Qty
+basic-tee,基础 T 恤,Color,Black,Size,S,,,TEE-BLK-S,89.00,120
+basic-tee,,Color,Black,Size,M,,,TEE-BLK-M,89.00,100
+basic-tee,,Color,White,Size,S,,,TEE-WHT-S,92.50,40
+classic-mug,马克杯经典款,Title,Default Title,,,,,MUG-001,49.00,200
+barcode-demo,条码演示,Title,Default Title,,,,,1230000000000,19.9,50
+canvas-bag,帆布袋,Title,Default Title,,,,,BAG-01,28.00,60
+shopify-only,仅店铺有的商品,Title,Default Title,,,,,SHOP-ONLY,10.00,7
+leading-zero-demo,前导零演示,Title,Default Title,,,,,0123456789012,25.00,280
