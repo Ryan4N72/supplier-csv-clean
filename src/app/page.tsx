@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FileDrop } from "@/components/FileDrop";
 import { DryRunPanel } from "@/components/DryRunPanel";
 import { parseFile, parseSampleUrl } from "@/lib/parse";
 import { mapSupplierRows } from "@/lib/supplier";
 import { mapShopifyVariants } from "@/lib/shopify";
 import { buildDryRun } from "@/lib/match";
-import { buildChangedCsv, downloadTextFile } from "@/lib/exportCsv";
+import {
+  EXPORT_FILENAME,
+  buildChangedCsv,
+  canUseSaveFilePicker,
+  saveWithFilePickerOrFallback,
+} from "@/lib/exportCsv";
 import type { DryRunReport, ParsedSheet } from "@/lib/types";
 
 export default function HomePage() {
@@ -17,6 +22,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [meta, setMeta] = useState<string | null>(null);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
 
   const clearReport = () => {
     setReport(null);
@@ -100,10 +106,36 @@ export default function HomePage() {
     await runPipeline(supplierSheet, shopifySheet);
   };
 
-  const download = async () => {
-    if (!report || report.changedDiffs.length === 0) return;
+  // 干跑完成后预挂 blob URL，导出按钮用原生 <a download>，不靠 JS 合成 click
+  useEffect(() => {
+    if (!report || report.changedDiffs.length === 0) {
+      setExportUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
     const csv = buildChangedCsv(report.changedDiffs);
-    await downloadTextFile("shopify-price-inventory-delta.csv", csv);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    setExportUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
+    return () => URL.revokeObjectURL(url);
+  }, [report]);
+
+  const onExportClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!report || report.changedDiffs.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    // 自动化环境（webdriver）或无 API：放行原生 <a download>
+    if (!canUseSaveFilePicker()) return;
+    // 真实 Chrome：拦截默认下载，改走 Save As（失败再 fallback）
+    e.preventDefault();
+    const csv = buildChangedCsv(report.changedDiffs);
+    saveWithFilePickerOrFallback(csv, exportUrl);
   };
 
   const bothReady = Boolean(supplierSheet && shopifySheet);
@@ -184,14 +216,20 @@ export default function HomePage() {
         <div className="mt-8 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">干跑结果</h2>
-            <button
-              type="button"
-              onClick={download}
-              disabled={report.changedCount === 0}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              导出 CSV（{report.changedCount} 行）
-            </button>
+            {report.changedCount > 0 && exportUrl ? (
+              <a
+                href={exportUrl}
+                download={EXPORT_FILENAME}
+                onClick={onExportClick}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
+              >
+                导出 CSV（{report.changedCount} 行）
+              </a>
+            ) : (
+              <span className="rounded-lg bg-emerald-600/40 px-4 py-2 text-sm font-semibold text-white">
+                导出 CSV（{report.changedCount} 行）
+              </span>
+            )}
           </div>
           <DryRunPanel report={report} />
         </div>

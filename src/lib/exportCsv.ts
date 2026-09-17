@@ -1,6 +1,7 @@
 import type { DiffRow } from "./types";
 
-const EXPORT_FILENAME = "shopify-price-inventory-delta.csv";
+/** 真实保存名：与页面文案、Save As suggestedName、a.download 三者一致 */
+export const EXPORT_FILENAME = "shopify-price-inventory-delta.csv";
 
 /** Shopify 导入用 UTF-8 BOM CSV；仅输出有意覆盖的列 */
 export function buildChangedCsv(changed: DiffRow[]): string {
@@ -71,43 +72,64 @@ type SaveFilePickerWindow = Window & {
   }) => Promise<FileSystemFileHandle>;
 };
 
-/** 优先 showSaveFilePicker(suggestedName)；否则标准 a.download 回退 */
-export async function downloadTextFile(
-  _filename: string,
-  content: string
-): Promise<void> {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+/** 自动化/无手势环境不要走 picker，否则会吞掉原生 <a download> */
+export function canUseSaveFilePicker(): boolean {
+  if (typeof window === "undefined") return false;
+  if (navigator.webdriver) return false;
   const w = window as SaveFilePickerWindow;
+  return typeof w.showSaveFilePicker === "function";
+}
 
-  if (typeof w.showSaveFilePicker === "function") {
-    try {
-      const handle = await w.showSaveFilePicker({
-        suggestedName: EXPORT_FILENAME,
-        types: [
-          {
-            description: "CSV",
-            accept: { "text/csv": [".csv"] },
-          },
-        ],
-      });
+/**
+ * 在用户点击手势内同步启动 showSaveFilePicker。
+ * 失败（非取消）时用 fallbackUrl + a.download 补救。
+ */
+export function saveWithFilePickerOrFallback(
+  content: string,
+  fallbackUrl: string | null
+): void {
+  const w = window as SaveFilePickerWindow;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+
+  const fallback = () => {
+    const url =
+      fallbackUrl ??
+      URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", EXPORT_FILENAME);
+    a.download = EXPORT_FILENAME;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    if (!fallbackUrl) {
+      window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+  };
+
+  if (!canUseSaveFilePicker() || typeof w.showSaveFilePicker !== "function") {
+    fallback();
+    return;
+  }
+
+  void w
+    .showSaveFilePicker({
+      suggestedName: EXPORT_FILENAME,
+      types: [
+        {
+          description: "CSV",
+          accept: { "text/csv": [".csv"] },
+        },
+      ],
+    })
+    .then(async (handle) => {
       const writable = await handle.createWritable();
       await writable.write(blob);
       await writable.close();
-      return;
-    } catch (err) {
-      // 用户取消：不再回退，避免二次弹下载
+    })
+    .catch((err: unknown) => {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      // 其它失败 → 回退 a.download
-    }
-  }
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = EXPORT_FILENAME;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      fallback();
+    });
 }
