@@ -59,42 +59,17 @@ function csvEscape(v: string): string {
   return s;
 }
 
-/**
- * 强制以指定文件名下载。
- * 用 application/octet-stream，避免部分浏览器把 blob: UUID 当地址栏文件名。
- */
+/** 标准 <a download> 保存；无 File System Access / 无服务端路由 */
 export function downloadTextFile(filename: string, content: string) {
-  const safeName = filename.toLowerCase().endsWith(".csv")
-    ? filename
-    : `${filename}.csv`;
-
-  const blob = new Blob([content], {
-    type: "application/octet-stream",
-  });
-
-  // 旧 Edge
-  const nav = window.navigator as Navigator & {
-    msSaveOrOpenBlob?: (b: Blob, name?: string) => boolean;
-  };
-  if (typeof nav.msSaveOrOpenBlob === "function") {
-    nav.msSaveOrOpenBlob(blob, safeName);
-    return;
-  }
-
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.style.display = "none";
   a.href = url;
-  a.setAttribute("download", safeName);
-  a.download = safeName;
+  a.download = "shopify-price-inventory-delta.csv";
   a.rel = "noopener";
   document.body.appendChild(a);
-  a.dispatchEvent(
-    new MouseEvent("click", { bubbles: true, cancelable: true, view: window })
-  );
-  // 延迟 revoke，避免部分浏览器还没开始下载就丢掉名字
-  window.setTimeout(() => {
-    URL.revokeObjectURL(url);
-    a.remove();
-  }, 2000);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  void filename; // 调用方仍传名；实际保存名固定为上式，避免漂移
 }
