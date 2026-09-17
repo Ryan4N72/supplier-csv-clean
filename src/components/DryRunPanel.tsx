@@ -67,7 +67,15 @@ export function DryRunPanel({ report }: Props) {
             <Check ok={report.changedCount > 0} />
             变更行数：{report.changedCount}（仅这些会进入下载 CSV）
           </li>
+          <li className="flex gap-2">
+            <Check ok />
+            价格/库存未变更的已匹配行不会进入导出
+          </li>
         </ul>
+        <p className="mt-3 text-xs text-slate-500">
+          导出文件名为 <code className="rounded bg-slate-100 px-1">shopify-price-inventory-delta.csv</code>
+          ，仅含有价格或库存变化的行。
+        </p>
       </section>
 
       {report.damages.length > 0 && (
@@ -103,6 +111,33 @@ export function DryRunPanel({ report }: Props) {
             {report.unmatchedSupplier.length > 40 && (
               <span className="text-xs text-rose-700">
                 …还有 {report.unmatchedSupplier.length - 40} 个
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
+
+      {report.unmatchedShopifySkus.length > 0 && (
+        <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-slate-800">
+            店铺有、供应商没有的 SKU（{report.unmatchedShopifySkus.length}）
+          </h3>
+          <p className="mb-2 text-xs text-slate-500">
+            这些变体不会出现在本次导出里（供应商表未提供对应价格/库存）。
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {report.unmatchedShopifySkus.slice(0, 40).map((sku, i) => (
+              <code
+                key={i}
+                className="rounded bg-white px-2 py-0.5 text-xs text-slate-700 ring-1 ring-slate-200"
+              >
+                {sku || "(空)"}
+              </code>
+            ))}
+            {report.unmatchedShopifySkus.length > 40 && (
+              <span className="text-xs text-slate-600">
+                …还有 {report.unmatchedShopifySkus.length - 40} 个
               </span>
             )}
           </div>

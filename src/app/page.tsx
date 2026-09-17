@@ -103,8 +103,8 @@ export default function HomePage() {
   const download = () => {
     if (!report || report.changedDiffs.length === 0) return;
     const csv = buildChangedCsv(report.changedDiffs);
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    downloadTextFile(`shopify-price-inventory-update-${stamp}.csv`, csv);
+    // 固定可读文件名，避免浏览器落成 UUID / 无扩展名
+    downloadTextFile("shopify-price-inventory-delta.csv", csv);
   };
 
   const bothReady = Boolean(supplierSheet && shopifySheet);
