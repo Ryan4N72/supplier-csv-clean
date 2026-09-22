@@ -67,6 +67,17 @@ export async function parseFile(file: File): Promise<ParsedSheet> {
   return workbookToSheet(workbook, file.name);
 }
 
+/** 从内嵌 / 本地字符串解析 CSV（不发起网络请求） */
+export function parseCsvText(text: string, fileName: string): ParsedSheet {
+  const workbook = XLSX.read(stripBom(text), {
+    type: "string",
+    raw: false,
+    cellDates: true,
+    codepage: 65001,
+  });
+  return workbookToSheet(workbook, fileName);
+}
+
 /** 从 URL 拉取样例（仍在浏览器端解析，仅用于 demo） */
 export async function parseSampleUrl(
   url: string,

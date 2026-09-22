@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { FileDrop } from "@/components/FileDrop";
 import { DryRunPanel } from "@/components/DryRunPanel";
 import { ColumnMapper } from "@/components/ColumnMapper";
-import { parseFile, parseSampleUrl } from "@/lib/parse";
+import { parseFile, parseCsvText } from "@/lib/parse";
+import {
+  SAMPLE_SHOPIFY_CSV,
+  SAMPLE_SHOPIFY_FILENAME,
+  SAMPLE_SUPPLIER_CSV,
+  SAMPLE_SUPPLIER_FILENAME,
+} from "@/lib/samples";
 import {
   SUPPLIER_INV_ALIASES,
   SUPPLIER_PRICE_ALIASES,
@@ -135,13 +141,9 @@ export default function HomePage() {
     setSupplierMapping(null);
     setNeedMapping(false);
     try {
-      const [supplier, shopify] = await Promise.all([
-        parseSampleUrl("/samples/supplier-catalog.csv", "supplier-catalog.csv"),
-        parseSampleUrl(
-          "/samples/shopify-products-export.csv",
-          "shopify-products-export.csv"
-        ),
-      ]);
+      // 内嵌静态 CSV，不走 fetch（兼容 CSP connect-src 'none'）
+      const supplier = parseCsvText(SAMPLE_SUPPLIER_CSV, SAMPLE_SUPPLIER_FILENAME);
+      const shopify = parseCsvText(SAMPLE_SHOPIFY_CSV, SAMPLE_SHOPIFY_FILENAME);
       setSupplierSheet(supplier);
       setShopifySheet(shopify);
     } catch (e) {
