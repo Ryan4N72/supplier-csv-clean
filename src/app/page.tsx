@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileDrop } from "@/components/FileDrop";
 import { DryRunPanel } from "@/components/DryRunPanel";
+import { ColumnMapper } from "@/components/ColumnMapper";
 import { parseFile, parseSampleUrl } from "@/lib/parse";
-import { mapSupplierRows } from "@/lib/supplier";
+import {
+  SUPPLIER_INV_ALIASES,
+  SUPPLIER_PRICE_ALIASES,
+  SUPPLIER_SKU_ALIASES,
+  detectSupplierColumns,
+  mapSupplierRows,
+  type SupplierColumnMapping,
+} from "@/lib/supplier";
 import { mapShopifyVariants } from "@/lib/shopify";
 import { buildDryRun } from "@/lib/match";
 import {
@@ -13,6 +21,10 @@ import {
   canUseSaveFilePicker,
   saveWithFilePickerOrFallback,
 } from "@/lib/exportCsv";
+import {
+  downloadShopifyTemplate,
+  downloadSupplierTemplate,
+} from "@/lib/templates";
 import type { DryRunReport, ParsedSheet } from "@/lib/types";
 
 export default function HomePage() {
@@ -23,35 +35,75 @@ export default function HomePage() {
   const [busy, setBusy] = useState(false);
   const [meta, setMeta] = useState<string | null>(null);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [supplierMapping, setSupplierMapping] =
+    useState<SupplierColumnMapping | null>(null);
+  const [needMapping, setNeedMapping] = useState(false);
+  const [mapSku, setMapSku] = useState("");
+  const [mapPrice, setMapPrice] = useState("");
+  const [mapInv, setMapInv] = useState("");
 
   const clearReport = () => {
     setReport(null);
     setMeta(null);
   };
 
-  const runPipeline = useCallback(async (supplier: ParsedSheet, shopify: ParsedSheet) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const { rows: suppliers, skuCol, priceCol, invCol } = mapSupplierRows(supplier);
-      const { variants } = mapShopifyVariants(shopify);
-      const dry = buildDryRun(suppliers, variants);
-      setReport(dry);
-      setMeta(
-        `供应商列: SKU=${skuCol} / 价格=${priceCol ?? "未识别"} / 库存=${invCol ?? "未识别"} · Shopify 变体 ${variants.length} 行`
-      );
-    } catch (e) {
-      setReport(null);
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  const runPipeline = useCallback(
+    async (
+      supplier: ParsedSheet,
+      shopify: ParsedSheet,
+      mapping: SupplierColumnMapping | null
+    ) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const auto = detectSupplierColumns(supplier);
+        const effective: SupplierColumnMapping | null =
+          mapping ??
+          (auto.skuCol
+            ? {
+                skuCol: auto.skuCol,
+                priceCol: auto.priceCol,
+                invCol: auto.invCol,
+              }
+            : null);
+
+        if (!effective?.skuCol) {
+          setNeedMapping(true);
+          setMapSku(auto.skuCol ?? supplier.headers[0] ?? "");
+          setMapPrice(auto.priceCol ?? "");
+          setMapInv(auto.invCol ?? "");
+          setError("未能自动识别供应商 SKU 列，请在下方手动指定后继续。");
+          setReport(null);
+          return;
+        }
+
+        setNeedMapping(false);
+        const { rows: suppliers, skuCol, priceCol, invCol } = mapSupplierRows(
+          supplier,
+          effective
+        );
+        const { variants } = mapShopifyVariants(shopify);
+        const dry = buildDryRun(suppliers, variants);
+        setReport(dry);
+        setMeta(
+          `供应商列: SKU=${skuCol} / 价格=${priceCol ?? "未映射"} / 库存=${invCol ?? "未映射"} · Shopify 变体 ${variants.length} 行`
+        );
+      } catch (e) {
+        setReport(null);
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    []
+  );
 
   const onSupplier = async (file: File) => {
     setBusy(true);
     setError(null);
     clearReport();
+    setSupplierMapping(null);
+    setNeedMapping(false);
     try {
       const sheet = await parseFile(file);
       setSupplierSheet(sheet);
@@ -76,11 +128,12 @@ export default function HomePage() {
     }
   };
 
-  /** 只加载样例，不自动干跑 */
   const loadSamples = async () => {
     setBusy(true);
     setError(null);
     clearReport();
+    setSupplierMapping(null);
+    setNeedMapping(false);
     try {
       const [supplier, shopify] = await Promise.all([
         parseSampleUrl("/samples/supplier-catalog.csv", "supplier-catalog.csv"),
@@ -103,10 +156,20 @@ export default function HomePage() {
       setError("请先上传两份文件，或点击「加载演示样例」");
       return;
     }
-    await runPipeline(supplierSheet, shopifySheet);
+    await runPipeline(supplierSheet, shopifySheet, supplierMapping);
   };
 
-  // 干跑完成后预挂 blob URL，导出按钮用原生 <a download>，不靠 JS 合成 click
+  const confirmMapping = async () => {
+    if (!supplierSheet || !shopifySheet || !mapSku) return;
+    const mapping: SupplierColumnMapping = {
+      skuCol: mapSku,
+      priceCol: mapPrice || null,
+      invCol: mapInv || null,
+    };
+    setSupplierMapping(mapping);
+    await runPipeline(supplierSheet, shopifySheet, mapping);
+  };
+
   useEffect(() => {
     if (!report || report.changedDiffs.length === 0) {
       setExportUrl((prev) => {
@@ -130,9 +193,7 @@ export default function HomePage() {
       e.preventDefault();
       return;
     }
-    // 自动化环境（webdriver）或无 API：放行原生 <a download>
     if (!canUseSaveFilePicker()) return;
-    // 真实 Chrome：拦截默认下载，改走 Save As（失败再 fallback）
     e.preventDefault();
     const csv = buildChangedCsv(report.changedDiffs);
     saveWithFilePickerOrFallback(csv, exportUrl);
@@ -142,7 +203,7 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <header className="mb-8">
+      <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
           本地浏览器 · 零上传
         </p>
@@ -150,10 +211,33 @@ export default function HomePage() {
           供应商 CSV 清洗 → Shopify 导入准备
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-          上传供应商脏表与 Shopify 产品导出，按 SKU 映射到 Handle/变体，检测
-          Excel 损坏，干跑核对后仅下载价格/库存有变更的 UTF-8 BOM CSV。所有解析在浏览器完成，文件内容不会发往服务器。
+          文件只在你的浏览器里解析，不会发往服务器。可打开开发者工具 → Network
+          面板验证：干跑/导出过程中不应出现上传表格内容的请求（本站 CSP{" "}
+          <code className="rounded bg-slate-100 px-1">connect-src &apos;none&apos;</code>
+          ）。
         </p>
       </header>
+
+      <ol className="mb-6 grid gap-2 sm:grid-cols-3">
+        {[
+          { n: "1", t: "上传", d: "供应商表 + Shopify 导出" },
+          { n: "2", t: "干跑", d: "本地比对价格/库存变更" },
+          { n: "3", t: "下载", d: "仅变更行的导入 CSV" },
+        ].map((s) => (
+          <li
+            key={s.n}
+            className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+              {s.n}
+            </span>
+            <div>
+              <div className="text-sm font-semibold text-indigo-950">{s.t}</div>
+              <div className="text-xs text-indigo-900/70">{s.d}</div>
+            </div>
+          </li>
+        ))}
+      </ol>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
@@ -172,9 +256,20 @@ export default function HomePage() {
         >
           开始干跑
         </button>
-        <span className="text-xs text-slate-500">
-          演示：加载样例 → 开始干跑 → 导出 CSV
-        </span>
+        <button
+          type="button"
+          onClick={downloadSupplierTemplate}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          下载供应商空白模板
+        </button>
+        <button
+          type="button"
+          onClick={downloadShopifyTemplate}
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          下载 Shopify 空白模板
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -185,6 +280,8 @@ export default function HomePage() {
           onFile={onSupplier}
           onClear={() => {
             setSupplierSheet(null);
+            setSupplierMapping(null);
+            setNeedMapping(false);
             clearReport();
           }}
         />
@@ -200,6 +297,26 @@ export default function HomePage() {
         />
       </div>
 
+      <details className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
+        <summary className="cursor-pointer font-medium text-slate-700">
+          支持的列名别名（自动识别）
+        </summary>
+        <div className="mt-2 space-y-1 pb-1">
+          <p>
+            <span className="font-semibold">SKU：</span>
+            {SUPPLIER_SKU_ALIASES.join(" / ")}
+          </p>
+          <p>
+            <span className="font-semibold">价格：</span>
+            {SUPPLIER_PRICE_ALIASES.join(" / ")}
+          </p>
+          <p>
+            <span className="font-semibold">库存：</span>
+            {SUPPLIER_INV_ALIASES.join(" / ")}
+          </p>
+        </div>
+      </details>
+
       {busy && (
         <p className="mt-4 text-sm text-indigo-600">正在本地解析与比对…</p>
       )}
@@ -210,6 +327,23 @@ export default function HomePage() {
       )}
       {meta && !error && (
         <p className="mt-3 text-xs text-slate-500">{meta}</p>
+      )}
+
+      {needMapping && supplierSheet && (
+        <ColumnMapper
+          headers={supplierSheet.headers}
+          skuCol={mapSku}
+          priceCol={mapPrice}
+          invCol={mapInv}
+          onSku={setMapSku}
+          onPrice={setMapPrice}
+          onInv={setMapInv}
+          onConfirm={confirmMapping}
+          onCancel={() => {
+            setNeedMapping(false);
+            setError(null);
+          }}
+        />
       )}
 
       {report && (
@@ -223,7 +357,7 @@ export default function HomePage() {
                 onClick={onExportClick}
                 className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
               >
-                导出 CSV（{report.changedCount} 行）
+                导出 CSV（{report.changedCount} 行）· {EXPORT_FILENAME}
               </a>
             ) : (
               <span className="rounded-lg bg-emerald-600/40 px-4 py-2 text-sm font-semibold text-white">
@@ -236,11 +370,16 @@ export default function HomePage() {
       )}
 
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500">
-        <p>
-          <strong>MVP 边界：</strong>
-          不接 Shopify API / FTP / 定时任务；不做新品创建、多店铺、PIM、登录；不做 PDF / AI。
-          导出列仅含 Handle、Option、Variant SKU、Variant Price、Variant Inventory Qty；未变更字段留空以免覆盖。
-        </p>
+        <details>
+          <summary className="cursor-pointer font-medium text-slate-600">
+            MVP 边界与说明
+          </summary>
+          <p className="mt-2">
+            不接 Shopify API / FTP / 定时任务；不做新品创建、多店铺、PIM、登录；不做
+            PDF / AI。导出列仅含 Handle、Option、Variant SKU、Variant Price、Variant
+            Inventory Qty；未变更字段留空以免覆盖。
+          </p>
+        </details>
       </footer>
     </main>
   );
