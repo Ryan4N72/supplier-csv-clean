@@ -37,7 +37,11 @@ export default function SuccessPage() {
           and every export now includes all changed rows.
         </li>
         <li>Download the CSV with only the changed rows.</li>
-        <li>In Shopify, import that CSV and choose to overwrite existing products.</li>
+        <li>
+          In Shopify, import that CSV and choose to overwrite existing products. Every row
+          has both Price and Inventory filled, so nothing gets blanked. For your first
+          import, try a small file on a test product to confirm.
+        </li>
       </ol>
 
       <p className="mt-8 text-sm text-slate-600">

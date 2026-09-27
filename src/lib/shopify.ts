@@ -6,7 +6,7 @@ export function mapShopifyVariants(sheet: ParsedSheet): {
   variants: ShopifyVariant[];
   columns: Record<string, string | null>;
 } {
-  const handleCol = findColumn(sheet.headers, ["Handle", "handle", "产品句柄"]);
+  const handleCol = findColumn(sheet.headers, ["Handle", "handle", "URL handle", "url handle", "产品句柄"]);
   const titleCol = findColumn(sheet.headers, ["Title", "title", "标题", "产品标题"]);
   const skuCol = findColumn(sheet.headers, [
     "Variant SKU",
@@ -23,6 +23,9 @@ export function mapShopifyVariants(sheet: ParsedSheet): {
   const invCol = findColumn(sheet.headers, [
     "Variant Inventory Qty",
     "variant inventory qty",
+    "Inventory quantity",
+    "inventory quantity",
+    "Inventory Qty",
     "Inventory",
     "库存",
   ]);
@@ -53,8 +56,16 @@ export function mapShopifyVariants(sheet: ParsedSheet): {
 
   sheet.rows.forEach((row, i) => {
     let handle = cellStr(row[handleCol]);
-    if (handle) lastHandle = handle;
-    else handle = lastHandle;
+    if (handle && handle !== lastHandle) {
+      // 换商品：标题与选项名不跨商品沿用
+      lastHandle = handle;
+      lastTitle = "";
+      lastO1n = "";
+      lastO2n = "";
+      lastO3n = "";
+    } else if (!handle) {
+      handle = lastHandle;
+    }
 
     let title = titleCol ? cellStr(row[titleCol]) : "";
     if (title) lastTitle = title;

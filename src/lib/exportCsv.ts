@@ -3,10 +3,11 @@ import type { DiffRow } from "./types";
 /** 真实保存名：与页面文案、Save As suggestedName、a.download 三者一致 */
 export const EXPORT_FILENAME = "shopify-price-inventory-delta.csv";
 
-/** Shopify 导入用 UTF-8 BOM CSV；仅输出有意覆盖的列 */
+/** Shopify 导入用 UTF-8 BOM CSV。覆盖导入时空格会清空原值，所以价格、库存两列都填：没变的一列用店铺原值 */
 export function buildChangedCsv(changed: DiffRow[]): string {
   const headers = [
     "Handle",
+    "Title",
     "Option1 Name",
     "Option1 Value",
     "Option2 Name",
@@ -21,17 +22,18 @@ export function buildChangedCsv(changed: DiffRow[]): string {
   const lines: string[] = [headers.join(",")];
 
   for (const d of changed) {
-    const price =
-      d.priceChanged && d.newPrice !== null ? formatNum(d.newPrice) : "";
-    const inv =
-      d.inventoryChanged && d.newInventory !== null
-        ? String(d.newInventory)
-        : "";
+    const priceUpdate = d.priceChanged && d.newPrice !== null;
+    const invUpdate = d.inventoryChanged && d.newInventory !== null;
+    if (!priceUpdate && !invUpdate) continue;
 
-    if (!price && !inv) continue;
+    const priceVal = priceUpdate ? d.newPrice : d.oldPrice ?? d.newPrice;
+    const invVal = invUpdate ? d.newInventory : d.oldInventory ?? d.newInventory;
+    const price = priceVal !== null && priceVal !== undefined ? formatNum(priceVal) : "";
+    const inv = invVal !== null && invVal !== undefined ? String(invVal) : "";
 
     const cols = [
       d.handle,
+      d.title,
       d.option1Name,
       d.option1Value,
       d.option2Name,
