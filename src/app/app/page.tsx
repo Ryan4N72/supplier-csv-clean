@@ -458,9 +458,10 @@ export default function CleanerPage() {
           <p className="mt-2">
             It does not connect to the Shopify API and does not create new products. The
             export only contains Handle, Title, Option, Variant SKU, Variant Price and
-            Variant Inventory Qty. Both Price and Inventory are always filled: if only one
-            changed, the other keeps your store&apos;s current value, so an overwrite import
-            never clears it.
+            Variant Inventory Qty. If only price or only inventory changed, the other column
+            is filled with your store&apos;s current value, so an overwrite import never
+            clears it (a cell that is already blank in your store stays blank). Try your
+            first import on a test product.
           </p>
         </details>
       </footer>

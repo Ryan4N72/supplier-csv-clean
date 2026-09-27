@@ -38,8 +38,9 @@ export default function SuccessPage() {
         </li>
         <li>Download the CSV with only the changed rows.</li>
         <li>
-          In Shopify, import that CSV and choose to overwrite existing products. Every row
-          has both Price and Inventory filled, so nothing gets blanked. For your first
+          In Shopify, import that CSV and choose to overwrite existing products. If only one of
+          Price or Inventory changed, the other keeps your store&apos;s current value, so
+          nothing gets blanked. For your first
           import, try a small file on a test product to confirm.
         </li>
       </ol>
