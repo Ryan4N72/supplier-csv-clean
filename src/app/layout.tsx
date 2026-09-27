@@ -1,10 +1,37 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SITE_URL } from "@/lib/config";
+
+const title = "Shopify Supplier CSV Cleaner";
+const description =
+  "Clean supplier CSVs, match SKUs with Shopify exports, and export price and inventory changes in seconds.";
 
 export const metadata: Metadata = {
-  title: "供应商 CSV 清洗 · Shopify 导入准备",
-  description:
-    "本地浏览器工具：供应商脏 Excel/CSV + Shopify 产品导出 → 仅变更行的可导入 CSV。文件不上传服务器。",
+  metadataBase: new URL(SITE_URL),
+  title,
+  description,
+  keywords: [
+    "Shopify CSV cleaner",
+    "Shopify supplier CSV",
+    "supplier spreadsheet",
+    "Shopify inventory CSV",
+    "Shopify price update",
+  ],
+  alternates: { canonical: "/" },
+  icons: { icon: "/favicon.ico" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: title,
+    title,
+    description,
+  },
+  twitter: { card: "summary", title, description },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -13,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
+    <html lang="en">
+      <body className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900 antialiased">
         {children}
       </body>
     </html>

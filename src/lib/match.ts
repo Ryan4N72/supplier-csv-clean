@@ -20,7 +20,19 @@ export function buildDryRun(
   const unmatchedSupplier: DiffRow[] = [];
   const damages: DamageFlag[] = [];
 
-  for (const s of suppliers) {
+  // 供应商表里同一 SKU 出现多次：以最后一行为准，避免导出同一变体两次
+  const lastIndexBySku = new Map<string, number>();
+  suppliers.forEach((s, i) => {
+    if (s.sku) lastIndexBySku.set(s.sku, i);
+  });
+  const duplicateSupplierSkus = new Set<string>();
+
+  for (let i = 0; i < suppliers.length; i++) {
+    const s = suppliers[i];
+    if (s.sku && lastIndexBySku.get(s.sku) !== i) {
+      duplicateSupplierSkus.add(s.sku);
+      continue;
+    }
     for (const d of s.damages) damages.push(d);
 
     const v = s.sku ? bySku.get(s.sku) : undefined;
@@ -96,7 +108,7 @@ export function buildDryRun(
   );
   const blankOverwrites = allDiffs.filter((d) => d.blankOverwrite);
   const matchedCount = matchedSkus.size;
-  const supplierWithSku = suppliers.filter((s) => s.sku).length;
+  const supplierWithSku = lastIndexBySku.size;
   const matchRate =
     supplierWithSku === 0 ? 0 : matchedCount / supplierWithSku;
 
@@ -106,6 +118,7 @@ export function buildDryRun(
     matchedCount,
     unmatchedSupplier,
     unmatchedShopifySkus: Array.from(new Set(unmatchedShopifySkus)),
+    duplicateSupplierSkus: Array.from(duplicateSupplierSkus),
     matchRate,
     damageCount: damages.length,
     damages,

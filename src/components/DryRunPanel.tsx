@@ -68,6 +68,14 @@ export function DryRunPanel({ report }: Props) {
             变更行数：{report.changedCount}（仅这些会进入下载 CSV）
           </li>
           <li className="flex gap-2">
+            <Check ok={report.duplicateSupplierSkus.length === 0} />
+            <span className="min-w-0 break-words">
+              供应商重复 SKU：{report.duplicateSupplierSkus.length} 个
+              {report.duplicateSupplierSkus.length > 0 &&
+                `（以最后一行为准：${report.duplicateSupplierSkus.slice(0, 10).join("、")}${report.duplicateSupplierSkus.length > 10 ? "…" : ""}）`}
+            </span>
+          </li>
+          <li className="flex gap-2">
             <Check ok />
             价格/库存未变更的已匹配行不会进入导出
           </li>

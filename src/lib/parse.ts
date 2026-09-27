@@ -41,6 +41,12 @@ function workbookToSheet(workbook: XLSX.WorkBook, fileName: string): ParsedSheet
     const first = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] as string[];
     headers = (first || []).map((h) => stripBom(String(h)).trim());
   }
+  if (headers.length === 0 && cleaned.rows.length === 0) {
+    throw new Error(`「${fileName}」是空文件或无法读取表头，请检查后重新上传。`);
+  }
+  if (cleaned.rows.length === 0) {
+    throw new Error(`「${fileName}」只有表头没有数据行。`);
+  }
   return { headers, rows: cleaned.rows, fileName };
 }
 
@@ -123,7 +129,7 @@ export function findColumn(
   for (const c of candidates) {
     const target = c.toLowerCase();
     const hit = normalized.find(
-      (h) => h.key.includes(target) || target.includes(h.key)
+      (h) => h.key.includes(target) || (h.key.length >= 4 && target.includes(h.key))
     );
     if (hit) return hit.raw;
   }

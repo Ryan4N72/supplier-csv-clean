@@ -69,6 +69,8 @@ export type DryRunReport = {
   matchedCount: number;
   unmatchedSupplier: DiffRow[];
   unmatchedShopifySkus: string[];
+  /** 供应商表中重复出现的 SKU（以最后一行为准） */
+  duplicateSupplierSkus: string[];
   matchRate: number;
   damageCount: number;
   damages: DamageFlag[];

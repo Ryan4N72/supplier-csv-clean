@@ -18,10 +18,10 @@ export function FileDrop({
   onClear,
 }: Props) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white p-5 transition hover:border-indigo-400 hover:bg-indigo-50/40">
+    <div className="flex min-w-0 flex-col gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white p-5 transition hover:border-indigo-400 hover:bg-indigo-50/40">
       <div className="text-sm font-semibold text-slate-800">{label}</div>
       <div className="text-xs text-slate-500">{hint}</div>
-      <div className="mt-1 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      <div className="mt-1 flex min-w-0 items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
         {fileName ? (
           <span className="truncate font-medium text-indigo-700">已选：{fileName}</span>
         ) : (
