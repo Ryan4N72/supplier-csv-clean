@@ -87,17 +87,19 @@ export default function LandingPage() {
       <section id="pricing" className="scroll-mt-6 py-10">
         <h2 className="text-xl font-semibold text-slate-900">Pricing</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <h3 className="text-sm font-semibold text-slate-900">Free</h3>
+            <p className="mt-2 text-3xl font-bold">$0</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Full dry-run preview. Export the first 20 changed rows.
+            </p>
+          </div>
           <div className="rounded-xl border-2 border-slate-900 bg-white p-6">
             <h3 className="text-sm font-semibold text-slate-900">Lifetime</h3>
             <p className="mt-2 text-3xl font-bold">$29</p>
-            <p className="mt-1 text-sm text-slate-600">One-time payment.</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h3 className="text-sm font-semibold text-slate-900">Monthly</h3>
-            <p className="mt-2 text-3xl font-bold">
-              $9<span className="text-base font-medium text-slate-500">/mo</span>
+            <p className="mt-1 text-sm text-slate-600">
+              One-time payment. Export all changed rows. No account needed.
             </p>
-            <p className="mt-1 text-sm text-slate-600">Cancel anytime.</p>
           </div>
         </div>
         <div className="mt-6">

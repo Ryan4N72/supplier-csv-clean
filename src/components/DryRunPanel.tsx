@@ -21,74 +21,75 @@ export function DryRunPanel({ report }: Props) {
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
-          title="匹配率"
+          title="Match rate"
           value={pct(report.matchRate)}
-          sub={`${report.matchedCount} / ${report.supplierCount} 供应商行`}
+          sub={`${report.matchedCount} / ${report.supplierCount} supplier rows`}
           tone={report.matchRate >= 0.9 ? "good" : report.matchRate >= 0.5 ? "warn" : "bad"}
         />
         <Stat
-          title="Excel 损坏迹象"
+          title="Excel damage"
           value={String(report.damageCount)}
-          sub="前导零 / 科学计数 / 日期 / 千分位"
+          sub="Leading zeros / sci. notation / dates / separators"
           tone={report.damageCount === 0 ? "good" : "warn"}
         />
         <Stat
-          title="将导出变更行"
+          title="Changed rows"
           value={String(report.changedCount)}
-          sub="仅价格或库存有变化"
+          sub="Price or inventory changed"
           tone="neutral"
         />
         <Stat
-          title="空白覆盖警告"
+          title="Blank value warnings"
           value={String(report.blankOverwriteCount)}
-          sub="供应商空值 vs 店铺有值（不会写入空）"
+          sub="Supplier blank, store has a value (never written)"
           tone={report.blankOverwriteCount === 0 ? "good" : "warn"}
         />
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h3 className="mb-2 text-sm font-semibold text-slate-800">干跑检查清单</h3>
+        <h3 className="mb-2 text-sm font-semibold text-slate-800">Dry-run checklist</h3>
         <ul className="space-y-1.5 text-sm text-slate-700">
           <li className="flex gap-2">
             <Check ok={report.matchRate >= 0.8} />
-            SKU 匹配率 {pct(report.matchRate)}
+            SKU match rate {pct(report.matchRate)}
             {report.unmatchedSupplier.length > 0 &&
-              `（未匹配供应商 SKU ${report.unmatchedSupplier.length} 个）`}
+              ` (${report.unmatchedSupplier.length} supplier SKUs not found in Shopify)`}
           </li>
           <li className="flex gap-2">
             <Check ok={report.damageCount === 0} />
-            Excel 损坏检测：{report.damageCount} 处
+            Excel damage found: {report.damageCount}
           </li>
           <li className="flex gap-2">
             <Check ok={report.blankOverwriteCount === 0} />
-            空白覆盖风险：{report.blankOverwriteCount} 行（导出时跳过空值，不覆盖）
+            Blank values: {report.blankOverwriteCount} rows (skipped on export, nothing is cleared)
           </li>
           <li className="flex gap-2">
             <Check ok={report.changedCount > 0} />
-            变更行数：{report.changedCount}（仅这些会进入下载 CSV）
+            Changed rows: {report.changedCount} (only these go into the CSV)
           </li>
           <li className="flex gap-2">
             <Check ok={report.duplicateSupplierSkus.length === 0} />
             <span className="min-w-0 break-words">
-              供应商重复 SKU：{report.duplicateSupplierSkus.length} 个
+              Duplicate supplier SKUs: {report.duplicateSupplierSkus.length}
               {report.duplicateSupplierSkus.length > 0 &&
-                `（以最后一行为准：${report.duplicateSupplierSkus.slice(0, 10).join("、")}${report.duplicateSupplierSkus.length > 10 ? "…" : ""}）`}
+                ` (the last row wins: ${report.duplicateSupplierSkus.slice(0, 10).join(", ")}${report.duplicateSupplierSkus.length > 10 ? "…" : ""})`}
             </span>
           </li>
           <li className="flex gap-2">
             <Check ok />
-            价格/库存未变更的已匹配行不会进入导出
+            Matched rows with no price or inventory change are not exported
           </li>
         </ul>
         <p className="mt-3 text-xs text-slate-500">
-          导出文件名为 <code className="rounded bg-slate-100 px-1">shopify-price-inventory-delta.csv</code>
-          ，仅含有价格或库存变化的行。
+          The export file is named{" "}
+          <code className="rounded bg-slate-100 px-1">shopify-price-inventory-delta.csv</code> and
+          contains only rows where price or inventory changed.
         </p>
       </section>
 
       {report.damages.length > 0 && (
         <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
-          <h3 className="mb-2 text-sm font-semibold text-amber-900">损坏详情（最多 20）</h3>
+          <h3 className="mb-2 text-sm font-semibold text-amber-900">Damage details (first 20)</h3>
           <ul className="max-h-48 space-y-1 overflow-auto text-xs text-amber-950">
             {report.damages.slice(0, 20).map((d, i) => (
               <li key={i}>
@@ -105,7 +106,7 @@ export function DryRunPanel({ report }: Props) {
       {report.unmatchedSupplier.length > 0 && (
         <section className="rounded-xl border border-rose-200 bg-rose-50/50 p-4">
           <h3 className="mb-2 text-sm font-semibold text-rose-900">
-            未匹配供应商 SKU（{report.unmatchedSupplier.length}）
+            Supplier SKUs not in Shopify ({report.unmatchedSupplier.length})
           </h3>
           <div className="flex flex-wrap gap-1.5">
             {report.unmatchedSupplier.slice(0, 40).map((r, i) => (
@@ -113,12 +114,12 @@ export function DryRunPanel({ report }: Props) {
                 key={i}
                 className="rounded bg-white px-2 py-0.5 text-xs text-rose-800 ring-1 ring-rose-200"
               >
-                {r.sku || "(空)"}
+                {r.sku || "(blank)"}
               </code>
             ))}
             {report.unmatchedSupplier.length > 40 && (
               <span className="text-xs text-rose-700">
-                …还有 {report.unmatchedSupplier.length - 40} 个
+                …and {report.unmatchedSupplier.length - 40} more
               </span>
             )}
           </div>
@@ -129,10 +130,10 @@ export function DryRunPanel({ report }: Props) {
       {report.unmatchedShopifySkus.length > 0 && (
         <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <h3 className="mb-2 text-sm font-semibold text-slate-800">
-            店铺有、供应商没有的 SKU（{report.unmatchedShopifySkus.length}）
+            Shopify SKUs missing from the supplier file ({report.unmatchedShopifySkus.length})
           </h3>
           <p className="mb-2 text-xs text-slate-500">
-            这些变体不会出现在本次导出里（供应商表未提供对应价格/库存）。
+            These variants are not in this export because the supplier file has no price or inventory for them.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {report.unmatchedShopifySkus.slice(0, 40).map((sku, i) => (
@@ -140,12 +141,12 @@ export function DryRunPanel({ report }: Props) {
                 key={i}
                 className="rounded bg-white px-2 py-0.5 text-xs text-slate-700 ring-1 ring-slate-200"
               >
-                {sku || "(空)"}
+                {sku || "(blank)"}
               </code>
             ))}
             {report.unmatchedShopifySkus.length > 40 && (
               <span className="text-xs text-slate-600">
-                …还有 {report.unmatchedShopifySkus.length - 40} 个
+                …and {report.unmatchedShopifySkus.length - 40} more
               </span>
             )}
           </div>
@@ -154,10 +155,10 @@ export function DryRunPanel({ report }: Props) {
 
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-800">
-          变更样例（最多 8 行）
+          Sample changes (first 8)
         </h3>
         {report.sampleDiffs.length === 0 ? (
-          <p className="text-sm text-slate-500">没有价格/库存变化，无需导出。</p>
+          <p className="text-sm text-slate-500">No price or inventory changes, so there is nothing to export.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-xs">
@@ -165,9 +166,9 @@ export function DryRunPanel({ report }: Props) {
                 <tr>
                   <th className="px-2 py-2 font-medium">SKU</th>
                   <th className="px-2 py-2 font-medium">Handle</th>
-                  <th className="px-2 py-2 font-medium">选项</th>
-                  <th className="px-2 py-2 font-medium">价格</th>
-                  <th className="px-2 py-2 font-medium">库存</th>
+                  <th className="px-2 py-2 font-medium">Options</th>
+                  <th className="px-2 py-2 font-medium">Price</th>
+                  <th className="px-2 py-2 font-medium">Inventory</th>
                 </tr>
               </thead>
               <tbody>

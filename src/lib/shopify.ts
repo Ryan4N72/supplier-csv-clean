@@ -35,12 +35,12 @@ export function mapShopifyVariants(sheet: ParsedSheet): {
 
   if (!handleCol) {
     throw new Error(
-      `Shopify 导出未找到 Handle 列。现有列: ${sheet.headers.join(", ")}`
+      `No Handle column found in the Shopify export. Columns: ${sheet.headers.join(", ")}`
     );
   }
   if (!skuCol) {
     throw new Error(
-      `Shopify 导出未找到 Variant SKU 列。现有列: ${sheet.headers.join(", ")}`
+      `No Variant SKU column found in the Shopify export. Columns: ${sheet.headers.join(", ")}`
     );
   }
 

@@ -87,7 +87,7 @@ export function mapSupplierRows(
 
   if (!skuCol) {
     throw new Error(
-      `供应商文件未找到 SKU 列。现有列: ${sheet.headers.join(", ")}`
+      `No SKU column found in the supplier file. Columns: ${sheet.headers.join(", ")}`
     );
   }
 
@@ -112,7 +112,7 @@ export function mapSupplierRows(
         damages.push({
           type: "date_swallowed",
           field: "sku",
-          message: `SKU 疑似 Excel 日期序列号: ${rawSku}`,
+          message: `SKU looks like an Excel date serial number: ${rawSku}`,
           raw: rawSku,
         });
       }

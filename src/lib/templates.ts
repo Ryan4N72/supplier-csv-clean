@@ -3,7 +3,7 @@
 export const SUPPLIER_TEMPLATE_FILENAME = "supplier-catalog-template.csv";
 export const SHOPIFY_TEMPLATE_FILENAME = "shopify-products-export-template.csv";
 
-const SUPPLIER_HEADERS = ["SKU", "价格", "库存"];
+const SUPPLIER_HEADERS = ["SKU", "Price", "Inventory"];
 const SHOPIFY_HEADERS = [
   "Handle",
   "Title",

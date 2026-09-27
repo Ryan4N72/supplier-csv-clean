@@ -14,7 +14,7 @@ export function detectSkuDamage(raw: string): DamageFlag[] {
     flags.push({
       type: "blank_sku",
       field: "sku",
-      message: "SKU 为空",
+      message: "SKU is empty",
       raw: s,
     });
     return flags;
@@ -23,7 +23,7 @@ export function detectSkuDamage(raw: string): DamageFlag[] {
     flags.push({
       type: "scientific_notation",
       field: "sku",
-      message: `SKU 疑似科学计数法: ${s}`,
+      message: `SKU looks like scientific notation: ${s}`,
       raw: s,
     });
   }
@@ -32,7 +32,7 @@ export function detectSkuDamage(raw: string): DamageFlag[] {
     flags.push({
       type: "date_swallowed",
       field: "sku",
-      message: `SKU 疑似被日期格式吞掉: ${s}`,
+      message: `SKU looks like it was converted to a date: ${s}`,
       raw: s,
     });
   }
@@ -51,7 +51,7 @@ export function detectInventoryDamage(raw: string): DamageFlag[] {
     flags.push({
       type: "thousand_separator",
       field: "inventory",
-      message: `库存含千分位分隔符: ${s}`,
+      message: `Inventory has a thousands separator: ${s}`,
       raw: s,
     });
   }
@@ -59,7 +59,7 @@ export function detectInventoryDamage(raw: string): DamageFlag[] {
     flags.push({
       type: "scientific_notation",
       field: "inventory",
-      message: `库存为科学计数法: ${s}`,
+      message: `Inventory is in scientific notation: ${s}`,
       raw: s,
     });
   }
@@ -122,7 +122,7 @@ export function flagLeadingZeroLost(
     return {
       type: "leading_zero_lost",
       field: "sku",
-      message: `前导零可能已丢失: 原文 "${originalText}" → "${normalized}"`,
+      message: `Leading zeros may have been lost: "${originalText}" became "${normalized}"`,
       raw: originalText,
     };
   }
@@ -132,9 +132,9 @@ export function flagLeadingZeroLost(
 }
 
 export const DAMAGE_LABELS: Record<string, string> = {
-  leading_zero_lost: "前导零丢失",
-  scientific_notation: "科学计数法",
-  date_swallowed: "日期吞掉 SKU",
-  thousand_separator: "千分位数量",
-  blank_sku: "空 SKU",
+  leading_zero_lost: "Leading zeros lost",
+  scientific_notation: "Scientific notation",
+  date_swallowed: "SKU turned into date",
+  thousand_separator: "Thousands separator",
+  blank_sku: "Blank SKU",
 };

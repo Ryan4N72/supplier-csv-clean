@@ -28,7 +28,7 @@ function cleanHeaders<T extends Record<string, unknown>>(
 function workbookToSheet(workbook: XLSX.WorkBook, fileName: string): ParsedSheet {
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
-    throw new Error("文件中没有工作表");
+    throw new Error("The file has no worksheet.");
   }
   const sheet = workbook.Sheets[sheetName];
   const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
@@ -42,10 +42,10 @@ function workbookToSheet(workbook: XLSX.WorkBook, fileName: string): ParsedSheet
     headers = (first || []).map((h) => stripBom(String(h)).trim());
   }
   if (headers.length === 0 && cleaned.rows.length === 0) {
-    throw new Error(`「${fileName}」是空文件或无法读取表头，请检查后重新上传。`);
+    throw new Error(`"${fileName}" is empty or its header row can't be read. Please check the file and upload it again.`);
   }
   if (cleaned.rows.length === 0) {
-    throw new Error(`「${fileName}」只有表头没有数据行。`);
+    throw new Error(`"${fileName}" has a header row but no data rows.`);
   }
   return { headers, rows: cleaned.rows, fileName };
 }
@@ -90,7 +90,7 @@ export async function parseSampleUrl(
   fileName: string
 ): Promise<ParsedSheet> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`无法加载样例: ${url}`);
+  if (!res.ok) throw new Error(`Could not load sample: ${url}`);
 
   if (isCsvName(fileName) || isCsvName(url)) {
     const text = stripBom(await res.text());

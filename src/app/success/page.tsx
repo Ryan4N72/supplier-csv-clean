@@ -20,6 +20,10 @@ export default function SuccessPage() {
       <h2 className="mt-10 text-lg font-semibold text-slate-900">What to do next</h2>
       <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
         <li>
+          Find your unlock code in your receipt email or on the checkout confirmation
+          page.
+        </li>
+        <li>
           Open the cleaner at{" "}
           <a className="font-medium text-indigo-700 underline" href="/app">
             supplier-csv-clean.vercel.app/app
@@ -28,7 +32,11 @@ export default function SuccessPage() {
         </li>
         <li>In Shopify admin, go to Products and export your products as CSV.</li>
         <li>Upload your supplier file and the Shopify export, then run the dry run.</li>
-        <li>Review the changes and download the CSV with only the changed rows.</li>
+        <li>
+          Under the results, paste your unlock code once. It is saved in this browser,
+          and every export now includes all changed rows.
+        </li>
+        <li>Download the CSV with only the changed rows.</li>
         <li>In Shopify, import that CSV and choose to overwrite existing products.</li>
       </ol>
 

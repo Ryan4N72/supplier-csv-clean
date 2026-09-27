@@ -32,6 +32,8 @@ import {
   downloadSupplierTemplate,
 } from "@/lib/templates";
 import type { DryRunReport, ParsedSheet } from "@/lib/types";
+import { FREE_EXPORT_LIMIT, isUnlocked, tryUnlock } from "@/lib/license";
+import { LIFETIME_PAYMENT_URL } from "@/lib/config";
 
 export default function CleanerPage() {
   const [supplierSheet, setSupplierSheet] = useState<ParsedSheet | null>(null);
@@ -47,6 +49,30 @@ export default function CleanerPage() {
   const [mapSku, setMapSku] = useState("");
   const [mapPrice, setMapPrice] = useState("");
   const [mapInv, setMapInv] = useState("");
+  const [unlocked, setUnlocked] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [unlockMsg, setUnlockMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUnlocked(isUnlocked());
+  }, []);
+
+  const exportDiffs = report
+    ? unlocked
+      ? report.changedDiffs
+      : report.changedDiffs.slice(0, FREE_EXPORT_LIMIT)
+    : [];
+
+  const onUnlock = async () => {
+    setUnlockMsg(null);
+    const ok = await tryUnlock(codeInput);
+    if (ok) {
+      setUnlocked(true);
+      setUnlockMsg("Unlocked. Exports now include all changed rows.");
+    } else {
+      setUnlockMsg("That code didn't work. Check your receipt and try again.");
+    }
+  };
 
   const clearReport = () => {
     setReport(null);
@@ -78,7 +104,7 @@ export default function CleanerPage() {
           setMapSku(auto.skuCol ?? supplier.headers[0] ?? "");
           setMapPrice(auto.priceCol ?? "");
           setMapInv(auto.invCol ?? "");
-          setError("未能自动识别供应商 SKU 列，请在下方手动指定后继续。");
+          setError("We couldn't find the SKU column in your supplier file. Pick it below to continue.");
           setReport(null);
           return;
         }
@@ -92,7 +118,7 @@ export default function CleanerPage() {
         const dry = buildDryRun(suppliers, variants);
         setReport(dry);
         setMeta(
-          `供应商列: SKU=${skuCol} / 价格=${priceCol ?? "未映射"} / 库存=${invCol ?? "未映射"} · Shopify 变体 ${variants.length} 行`
+          `Supplier columns: SKU=${skuCol} / Price=${priceCol ?? "not mapped"} / Inventory=${invCol ?? "not mapped"} · ${variants.length} Shopify variants`
         );
       } catch (e) {
         setReport(null);
@@ -155,7 +181,7 @@ export default function CleanerPage() {
 
   const startDryRun = async () => {
     if (!supplierSheet || !shopifySheet) {
-      setError("请先上传两份文件，或点击「加载演示样例」");
+      setError("Upload both files first, or click \"Load demo files\".");
       return;
     }
     await runPipeline(supplierSheet, shopifySheet, supplierMapping);
@@ -173,14 +199,19 @@ export default function CleanerPage() {
   };
 
   useEffect(() => {
-    if (!report || report.changedDiffs.length === 0) {
+    const diffs = report
+      ? unlocked
+        ? report.changedDiffs
+        : report.changedDiffs.slice(0, FREE_EXPORT_LIMIT)
+      : [];
+    if (diffs.length === 0) {
       setExportUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
       return;
     }
-    const csv = buildChangedCsv(report.changedDiffs);
+    const csv = buildChangedCsv(diffs);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     setExportUrl((prev) => {
@@ -188,16 +219,16 @@ export default function CleanerPage() {
       return url;
     });
     return () => URL.revokeObjectURL(url);
-  }, [report]);
+  }, [report, unlocked]);
 
   const onExportClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!report || report.changedDiffs.length === 0) {
+    if (exportDiffs.length === 0) {
       e.preventDefault();
       return;
     }
     if (!canUseSaveFilePicker()) return;
     e.preventDefault();
-    const csv = buildChangedCsv(report.changedDiffs);
+    const csv = buildChangedCsv(exportDiffs);
     saveWithFilePickerOrFallback(csv, exportUrl);
   };
 
@@ -215,24 +246,25 @@ export default function CleanerPage() {
       </nav>
       <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-          本地浏览器 · 零上传
+          Runs in your browser · Nothing is uploaded
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          供应商 CSV 清洗 → Shopify 导入准备
+          Supplier CSV to Shopify update file
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-          文件只在你的浏览器里解析，不会发往服务器。可打开开发者工具 → Network
-          面板验证：干跑/导出过程中不应出现上传表格内容的请求（本站 CSP{" "}
+          Your files are read in your browser and never sent to a server. You can check
+          this in your browser&apos;s developer tools under Network: no request carries
+          your spreadsheet (this site uses the CSP{" "}
           <code className="rounded bg-slate-100 px-1">connect-src &apos;none&apos;</code>
-          ）。
+          ).
         </p>
       </header>
 
       <ol className="mb-6 grid gap-2 sm:grid-cols-3">
         {[
-          { n: "1", t: "上传", d: "供应商表 + Shopify 导出" },
-          { n: "2", t: "干跑", d: "本地比对价格/库存变更" },
-          { n: "3", t: "下载", d: "仅变更行的导入 CSV" },
+          { n: "1", t: "Upload", d: "Supplier file + Shopify export" },
+          { n: "2", t: "Dry run", d: "Compare price and inventory locally" },
+          { n: "3", t: "Download", d: "Import CSV with only changed rows" },
         ].map((s) => (
           <li
             key={s.n}
@@ -256,7 +288,7 @@ export default function CleanerPage() {
           disabled={busy}
           className="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-indigo-50 disabled:opacity-50"
         >
-          加载演示样例
+          Load demo files
         </button>
         <button
           type="button"
@@ -264,28 +296,28 @@ export default function CleanerPage() {
           disabled={busy || !bothReady}
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          开始干跑
+          Run dry run
         </button>
         <button
           type="button"
           onClick={downloadSupplierTemplate}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
         >
-          下载供应商空白模板
+          Supplier template (CSV)
         </button>
         <button
           type="button"
           onClick={downloadShopifyTemplate}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
         >
-          下载 Shopify 空白模板
+          Shopify template (CSV)
         </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FileDrop
-          label="1. 供应商目录"
-          hint="需含 SKU、价格、库存列（中英列名均可）"
+          label="1. Supplier file"
+          hint="Needs SKU, price and inventory columns"
           fileName={supplierSheet?.fileName ?? null}
           onFile={onSupplier}
           onClear={() => {
@@ -296,8 +328,8 @@ export default function CleanerPage() {
           }}
         />
         <FileDrop
-          label="2. Shopify 产品导出"
-          hint="Products → Export，含 Handle / Variant SKU / Option / Price / Inventory"
+          label="2. Shopify product export"
+          hint="Shopify admin: Products, then Export (Handle, Variant SKU, Price, Inventory)"
           fileName={shopifySheet?.fileName ?? null}
           onFile={onShopify}
           onClear={() => {
@@ -309,26 +341,26 @@ export default function CleanerPage() {
 
       <details className="mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
         <summary className="cursor-pointer font-medium text-slate-700">
-          支持的列名别名（自动识别）
+          Column names we recognize automatically
         </summary>
         <div className="mt-2 space-y-1 pb-1">
           <p>
-            <span className="font-semibold">SKU：</span>
+            <span className="font-semibold">SKU: </span>
             {SUPPLIER_SKU_ALIASES.join(" / ")}
           </p>
           <p>
-            <span className="font-semibold">价格：</span>
+            <span className="font-semibold">Price: </span>
             {SUPPLIER_PRICE_ALIASES.join(" / ")}
           </p>
           <p>
-            <span className="font-semibold">库存：</span>
+            <span className="font-semibold">Inventory: </span>
             {SUPPLIER_INV_ALIASES.join(" / ")}
           </p>
         </div>
       </details>
 
       {busy && (
-        <p className="mt-4 text-sm text-indigo-600">正在本地解析与比对…</p>
+        <p className="mt-4 text-sm text-indigo-600">Reading and comparing in your browser…</p>
       )}
       {error && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -359,22 +391,61 @@ export default function CleanerPage() {
       {report && (
         <div className="mt-8 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900">干跑结果</h2>
-            {report.changedCount > 0 && exportUrl ? (
+            <h2 className="text-lg font-semibold text-slate-900">Dry-run results</h2>
+            {exportDiffs.length > 0 && exportUrl ? (
               <a
                 href={exportUrl}
                 download={EXPORT_FILENAME}
                 onClick={onExportClick}
                 className="max-w-full break-all rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
               >
-                导出 CSV（{report.changedCount} 行）· {EXPORT_FILENAME}
+                Export CSV ({exportDiffs.length}
+                {exportDiffs.length < report.changedCount ? ` of ${report.changedCount}` : ""} rows) ·{" "}
+                {EXPORT_FILENAME}
               </a>
             ) : (
               <span className="rounded-lg bg-emerald-600/40 px-4 py-2 text-sm font-semibold text-white">
-                导出 CSV（{report.changedCount} 行）
+                Export CSV (0 rows)
               </span>
             )}
           </div>
+          {!unlocked && report.changedCount > FREE_EXPORT_LIMIT && (
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+              <p className="text-sm font-semibold text-indigo-950">
+                {report.changedCount} changed rows. The free version exports the first{" "}
+                {FREE_EXPORT_LIMIT}. Unlock to export all {report.changedCount}.
+              </p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  placeholder="Unlock code from your receipt"
+                  className="min-w-0 flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={onUnlock}
+                  disabled={!codeInput.trim()}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  Unlock
+                </button>
+                {LIFETIME_PAYMENT_URL && (
+                  <a
+                    href={LIFETIME_PAYMENT_URL}
+                    rel="noopener"
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-slate-700"
+                  >
+                    Buy Lifetime — $29
+                  </a>
+                )}
+              </div>
+              {unlockMsg && <p className="mt-2 text-xs text-indigo-900">{unlockMsg}</p>}
+            </div>
+          )}
+          {unlocked && unlockMsg && (
+            <p className="text-sm text-emerald-700">{unlockMsg}</p>
+          )}
           <DryRunPanel report={report} />
         </div>
       )}
@@ -382,12 +453,13 @@ export default function CleanerPage() {
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs leading-relaxed text-slate-500">
         <details>
           <summary className="cursor-pointer font-medium text-slate-600">
-            MVP 边界与说明
+            What this tool does and doesn&apos;t do
           </summary>
           <p className="mt-2">
-            不接 Shopify API / FTP / 定时任务；不做新品创建、多店铺、PIM、登录；不做
-            PDF / AI。导出列仅含 Handle、Option、Variant SKU、Variant Price、Variant
-            Inventory Qty；未变更字段留空以免覆盖。
+            It does not connect to the Shopify API and does not create new products. The
+            export only contains Handle, Option, Variant SKU, Variant Price and Variant
+            Inventory Qty. Fields that didn&apos;t change are left blank so they don&apos;t
+            overwrite anything.
           </p>
         </details>
       </footer>
