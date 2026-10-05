@@ -1,6 +1,10 @@
-// 付款与联系方式配置：在 Vercel 项目 Environment Variables 里设置，改完需重新部署。
-// 不要把任何支付密钥写进仓库；这里只放公开的付款链接（Lemon Squeezy / Gumroad / Stripe Payment Link）。
-export const LIFETIME_PAYMENT_URL = process.env.NEXT_PUBLIC_LIFETIME_PAYMENT_URL ?? "";
+// 公开配置。打赏收款码图片放在 public/tip/ 下；地址是公开收款地址，不是密钥。
 export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
+
+// 打赏：留空则不显示对应项
+export const TIP_WECHAT_QR = ""; // 例如 "/tip/wechat.png"
+export const TIP_ALIPAY_QR = ""; // 例如 "/tip/alipay.png"
+export const TIP_USDC_ADDRESS = "";
+export const TIP_USDC_NETWORK = ""; // 例如 "Base"
 
 export const SITE_URL = "https://supplier-csv-clean.vercel.app";

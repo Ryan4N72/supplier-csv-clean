@@ -1,4 +1,5 @@
 import { BuyButtons } from "@/components/BuyButtons";
+import { TipJar } from "@/components/TipJar";
 import { SUPPORT_EMAIL } from "@/lib/config";
 
 const steps = [
@@ -21,7 +22,7 @@ export default function LandingPage() {
         <span className="font-semibold text-slate-900">Supplier CSV Cleaner</span>
         <div className="flex items-center gap-4">
           <a href="#pricing" className="text-slate-600 hover:text-slate-900">
-            Pricing
+            Free
           </a>
           <a href="/app" className="font-semibold text-indigo-700 hover:underline">
             Open app
@@ -85,23 +86,11 @@ export default function LandingPage() {
       </section>
 
       <section id="pricing" className="scroll-mt-6 py-10">
-        <h2 className="text-xl font-semibold text-slate-900">Pricing</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h3 className="text-sm font-semibold text-slate-900">Free</h3>
-            <p className="mt-2 text-3xl font-bold">$0</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Full dry-run preview. Export the first 20 changed rows.
-            </p>
-          </div>
-          <div className="rounded-xl border-2 border-slate-900 bg-white p-6">
-            <h3 className="text-sm font-semibold text-slate-900">Lifetime</h3>
-            <p className="mt-2 text-3xl font-bold">$29</p>
-            <p className="mt-1 text-sm text-slate-600">
-              One-time payment. Export all changed rows. No account needed.
-            </p>
-          </div>
-        </div>
+        <h2 className="text-xl font-semibold text-slate-900">Free to use</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
+          No account, no row limit, no upload. Export every changed row. If it saves you
+          time, you can leave a tip below.
+        </p>
         <div className="mt-6">
           <BuyButtons />
         </div>
@@ -120,6 +109,7 @@ export default function LandingPage() {
             </>
           )}
         </p>
+        <TipJar />
       </footer>
     </main>
   );

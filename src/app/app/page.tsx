@@ -32,8 +32,7 @@ import {
   downloadSupplierTemplate,
 } from "@/lib/templates";
 import type { DryRunReport, ParsedSheet } from "@/lib/types";
-import { FREE_EXPORT_LIMIT, isUnlocked, tryUnlock } from "@/lib/license";
-import { LIFETIME_PAYMENT_URL } from "@/lib/config";
+import { TipJar } from "@/components/TipJar";
 
 export default function CleanerPage() {
   const [supplierSheet, setSupplierSheet] = useState<ParsedSheet | null>(null);
@@ -49,30 +48,7 @@ export default function CleanerPage() {
   const [mapSku, setMapSku] = useState("");
   const [mapPrice, setMapPrice] = useState("");
   const [mapInv, setMapInv] = useState("");
-  const [unlocked, setUnlocked] = useState(false);
-  const [codeInput, setCodeInput] = useState("");
-  const [unlockMsg, setUnlockMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    setUnlocked(isUnlocked());
-  }, []);
-
-  const exportDiffs = report
-    ? unlocked
-      ? report.changedDiffs
-      : report.changedDiffs.slice(0, FREE_EXPORT_LIMIT)
-    : [];
-
-  const onUnlock = async () => {
-    setUnlockMsg(null);
-    const ok = await tryUnlock(codeInput);
-    if (ok) {
-      setUnlocked(true);
-      setUnlockMsg("Unlocked. Exports now include all changed rows.");
-    } else {
-      setUnlockMsg("That code didn't work. Check your receipt and try again.");
-    }
-  };
+  const exportDiffs = report ? report.changedDiffs : [];
 
   const clearReport = () => {
     setReport(null);
@@ -199,11 +175,7 @@ export default function CleanerPage() {
   };
 
   useEffect(() => {
-    const diffs = report
-      ? unlocked
-        ? report.changedDiffs
-        : report.changedDiffs.slice(0, FREE_EXPORT_LIMIT)
-      : [];
+    const diffs = report ? report.changedDiffs : [];
     if (diffs.length === 0) {
       setExportUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
@@ -219,7 +191,7 @@ export default function CleanerPage() {
       return url;
     });
     return () => URL.revokeObjectURL(url);
-  }, [report, unlocked]);
+  }, [report]);
 
   const onExportClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (exportDiffs.length === 0) {
@@ -241,7 +213,7 @@ export default function CleanerPage() {
           ← Supplier CSV Cleaner
         </a>
         <a href="/#pricing" className="text-indigo-700 hover:underline">
-          Pricing
+          Free
         </a>
       </nav>
       <header className="mb-6">
@@ -399,8 +371,7 @@ export default function CleanerPage() {
                 onClick={onExportClick}
                 className="max-w-full break-all rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-emerald-500"
               >
-                Export CSV ({exportDiffs.length}
-                {exportDiffs.length < report.changedCount ? ` of ${report.changedCount}` : ""} rows) ·{" "}
+                Export CSV ({exportDiffs.length} rows) ·{" "}
                 {EXPORT_FILENAME}
               </a>
             ) : (
@@ -409,43 +380,6 @@ export default function CleanerPage() {
               </span>
             )}
           </div>
-          {!unlocked && report.changedCount > FREE_EXPORT_LIMIT && (
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
-              <p className="text-sm font-semibold text-indigo-950">
-                {report.changedCount} changed rows. The free version exports the first{" "}
-                {FREE_EXPORT_LIMIT}. Unlock to export all {report.changedCount}.
-              </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input
-                  value={codeInput}
-                  onChange={(e) => setCodeInput(e.target.value)}
-                  placeholder="Unlock code from your receipt"
-                  className="min-w-0 flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={onUnlock}
-                  disabled={!codeInput.trim()}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-                >
-                  Unlock
-                </button>
-                {LIFETIME_PAYMENT_URL && (
-                  <a
-                    href={LIFETIME_PAYMENT_URL}
-                    rel="noopener"
-                    className="rounded-lg bg-slate-900 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-slate-700"
-                  >
-                    Buy Lifetime — $29
-                  </a>
-                )}
-              </div>
-              {unlockMsg && <p className="mt-2 text-xs text-indigo-900">{unlockMsg}</p>}
-            </div>
-          )}
-          {unlocked && unlockMsg && (
-            <p className="text-sm text-emerald-700">{unlockMsg}</p>
-          )}
           <DryRunPanel report={report} />
         </div>
       )}
@@ -464,6 +398,7 @@ export default function CleanerPage() {
             first import on a test product.
           </p>
         </details>
+        <TipJar />
       </footer>
     </main>
   );
