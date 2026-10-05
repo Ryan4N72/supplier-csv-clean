@@ -1,14 +1,24 @@
-import { TIP_WECHAT_QR, TIP_ALIPAY_QR, TIP_USDC_ADDRESS, TIP_USDC_NETWORK } from "@/lib/config";
+import { HAS_TIP, TIP_LINK_URL, TIP_LINK_LABEL, TIP_WECHAT_QR, TIP_ALIPAY_QR, TIP_USDC_ADDRESS, TIP_USDC_NETWORK } from "@/lib/config";
 
 // 打赏区：三项都没配置时整块不显示
 export function TipJar() {
-  if (!TIP_WECHAT_QR && !TIP_ALIPAY_QR && !TIP_USDC_ADDRESS) return null;
+  if (!HAS_TIP) return null;
   return (
     <section id="tip" className="mt-8 rounded-xl border border-slate-200 bg-white p-5 text-slate-700">
       <h2 className="text-sm font-semibold text-slate-900">Leave a tip (optional)</h2>
       <p className="mt-1 text-xs text-slate-500">
         The tool is free. If it saved you time, a tip helps keep it running.
       </p>
+      {TIP_LINK_URL && (
+        <a
+          href={TIP_LINK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+        >
+          {TIP_LINK_LABEL}
+        </a>
+      )}
       <div className="mt-4 flex flex-wrap gap-6">
         {TIP_WECHAT_QR && (
           <figure className="text-center">

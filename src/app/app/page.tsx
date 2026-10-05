@@ -33,6 +33,7 @@ import {
 } from "@/lib/templates";
 import type { DryRunReport, ParsedSheet } from "@/lib/types";
 import { TipJar } from "@/components/TipJar";
+import { HAS_TIP } from "@/lib/config";
 
 export default function CleanerPage() {
   const [supplierSheet, setSupplierSheet] = useState<ParsedSheet | null>(null);
@@ -380,6 +381,14 @@ export default function CleanerPage() {
               </span>
             )}
           </div>
+          {HAS_TIP && exportDiffs.length > 0 && (
+            <p className="text-right text-xs text-slate-500">
+              Saved you time?{" "}
+              <a href="#tip" className="text-indigo-700 hover:underline">
+                Leave a tip
+              </a>
+            </p>
+          )}
           <DryRunPanel report={report} />
         </div>
       )}
