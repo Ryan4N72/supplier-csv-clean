@@ -1,3 +1,17 @@
+# Supplier CSV Cleaner for Shopify
+
+**Free tool: https://supplier-csv-clean.vercel.app**
+
+Update Shopify prices and inventory from a supplier spreadsheet without hand-matching SKUs. Upload your supplier CSV/Excel file and your Shopify product export. The tool matches by SKU, flags cells Excel broke (scientific-notation barcodes, lost leading zeros, SKUs turned into dates), shows a dry run, and exports a Shopify-ready CSV with only the rows whose price or inventory changed.
+
+- Runs 100% in your browser. Files are never uploaded (CSP `connect-src 'none'`).
+- No account, no row limit.
+- Works with the classic (`Handle`, `Variant SKU`, `Variant Inventory Qty`) and newer (`URL handle`, `SKU`, `Inventory quantity`) Shopify export headers.
+
+Feedback and supplier files it can't handle: open an issue.
+
+---
+
 # 供应商 CSV 清洗 → Shopify 导入准备（MVP）
 
 本地浏览器工具：上传**供应商脏 Excel/CSV** + **Shopify 产品导出**，按 SKU 映射到 Handle/变体，检测常见 Excel 损坏，干跑核对后**仅下载价格/库存有变更**的 UTF-8 BOM CSV。
