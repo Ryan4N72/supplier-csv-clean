@@ -16,9 +16,56 @@ const audience = [
   "Anyone who regularly updates price or inventory",
 ];
 
+const faqs = [
+  {
+    q: "How do I update Shopify prices and inventory from a supplier CSV?",
+    a: "Export your products from Shopify admin, upload that file and your supplier's CSV or Excel file here, check the dry run, then import the downloaded CSV back into Shopify with \"Overwrite existing products\" on. Only the variants whose price or inventory changed are in the file.",
+  },
+  {
+    q: "Why does my supplier spreadsheet break SKUs?",
+    a: "Excel often turns long barcodes into scientific notation (1.23E+12), drops leading zeros, or reads codes like 3-15 as dates. The cleaner flags those rows so you can fix them before importing.",
+  },
+  {
+    q: "Is my file uploaded anywhere?",
+    a: "No. Everything runs in your browser and the page is blocked from sending data to any server.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. No account, no row limit.",
+  },
+];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "Supplier CSV Cleaner",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web browser",
+      url: "https://supplier-csv-clean.vercel.app/",
+      description:
+        "Free tool that matches a supplier CSV with your Shopify product export and outputs only the price and inventory changes as a Shopify-ready CSV.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faqs.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
+    },
+  ],
+};
+
 export default function LandingPage() {
   return (
     <main className="mx-auto max-w-4xl px-4 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <nav className="flex items-center justify-between gap-3 py-5 text-sm">
         <span className="font-semibold text-slate-900">Supplier CSV Cleaner</span>
         <div className="flex items-center gap-4">
@@ -84,6 +131,18 @@ export default function LandingPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section id="faq" className="py-10">
+        <h2 className="text-xl font-semibold text-slate-900">FAQ</h2>
+        <div className="mt-5 space-y-5">
+          {faqs.map((f) => (
+            <div key={f.q}>
+              <h3 className="text-sm font-semibold text-slate-900">{f.q}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">{f.a}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section id="pricing" className="scroll-mt-6 py-10">
