@@ -302,7 +302,7 @@ export default function CleanerPage() {
         />
         <FileDrop
           label="2. Shopify product export"
-          hint="Shopify admin: Products, then Export (Handle, Variant SKU, Price, Inventory)"
+          hint="Shopify admin: Products, then Export (Handle or URL handle, SKU, Price, Inventory)"
           fileName={shopifySheet?.fileName ?? null}
           onFile={onShopify}
           onClear={() => {

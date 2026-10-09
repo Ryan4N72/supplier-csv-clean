@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   description:
     "Upload a supplier CSV and your Shopify export, preview price and inventory changes, and download only the changed rows. Runs in your browser.",
   alternates: { canonical: "/app" },
+  openGraph: { url: "/app" },
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

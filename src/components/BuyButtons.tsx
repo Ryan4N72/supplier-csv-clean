@@ -5,7 +5,7 @@ export function BuyButtons() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
       <a href="/app" className={`${base} bg-indigo-600 text-white hover:bg-indigo-500`}>
-        Try it Free
+        Open the cleaner
       </a>
     </div>
   );

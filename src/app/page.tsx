@@ -1,5 +1,6 @@
 import { BuyButtons } from "@/components/BuyButtons";
 import { TipJar } from "@/components/TipJar";
+import { HAS_TIP } from "@/lib/config";
 import { SUPPORT_EMAIL } from "@/lib/config";
 
 const steps = [
@@ -88,8 +89,8 @@ export default function LandingPage() {
       <section id="pricing" className="scroll-mt-6 py-10">
         <h2 className="text-xl font-semibold text-slate-900">Free to use</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-          No account, no row limit, no upload. Export every changed row. If it saves you
-          time, you can leave a tip below.
+          No account, no row limit, no upload. Export every changed row.
+          {HAS_TIP && " If it saves you time, you can leave a tip below."}
         </p>
         <div className="mt-6">
           <BuyButtons />
